@@ -226,14 +226,40 @@ object Flight : Module(
 
                     if (mc.gameSettings.keyBindSneak.isKeyDown) up--
 
-                    player.motionY = if (up == 0) -glideSpeed else speed * up.toDouble()
+                    player.motionY = if (up == 0) 0.0 else speed * up.toDouble()
 
-                    if (!MovementUtils.isInputting)
-                        return@safeListener
+                    player.motionY = 0.0
 
-                    val yaw = calcMoveYaw()
-                    player.motionX = -sin(yaw) * speed
-                    player.motionZ = cos(yaw) * speed
+	                if (!mc.player.collidedVertically)
+		    	        mc.player.motionY -= glideSpeed //mayb just =
+
+                    //if (!MovementUtils.isInputting)
+                     //   return@safeListener
+
+                    var moveForward = mc.player.movementInput.moveForward
+                    var moveStrafe: Float = mc.player.movementInput.moveStrafe
+                    var rotationYaw: Float = (player.prevRotationYaw
+                        + (player.rotationYaw - player.prevRotationYaw)
+                        * mc.renderPartialTicks)
+                    if (moveForward != 0.0f) {
+                        if (moveStrafe > 0.0f) {
+                            rotationYaw += (if (moveForward > 0.0f) -45 else 45).toFloat()
+                        } else if (moveStrafe < 0.0f) {
+                            rotationYaw += (if (moveForward > 0.0f) 45 else -45).toFloat()
+                        }
+                        moveStrafe = 0.0f
+                        if (moveForward > 0.0f) {
+                            moveForward = 1.0f
+                        } else if (moveForward < 0.0f) {
+                            moveForward = -1.0f
+                        }
+                    }
+                    val posX = (moveForward * speed * -Math.sin(Math.toRadians(rotationYaw.toDouble()))
+                        + moveStrafe * speed * Math.cos(Math.toRadians(rotationYaw.toDouble())))
+                    val posZ = (moveForward * speed * Math.cos(Math.toRadians(rotationYaw.toDouble()))
+                        - moveStrafe * speed * -Math.sin(Math.toRadians(rotationYaw.toDouble())))
+                    player.motionX = posX
+                    player.motionZ = posZ
 
                 }
                 FlightMode.VANILLA -> {
@@ -247,7 +273,7 @@ object Flight : Module(
             }
         }
 
-        listener<OnUpdateWalkingPlayerEvent> {
+        /*listener<OnUpdateWalkingPlayerEvent> {
             if (it.phase != Phase.PRE || mode != FlightMode.PACKET) return@listener
             sendPlayerPacket {
                 cancelAll()
@@ -295,6 +321,6 @@ object Flight : Module(
             else
                 filter.remove(it.packet)
 
-        }
+        }*/
     }
 }
